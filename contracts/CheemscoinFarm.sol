@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
+// TODO: update link to farm
+// https://cheemsco.in/
 pragma solidity 0.7.6;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -8,10 +10,10 @@ import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./IHoneyFarm.sol";
 
-// Forked from sushiswap's MasterChef contract
-contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
+// Forked from the HoneyFarm v1 contract
+// https://github.com/1Hive/honeyswap-farm/blob/master/contracts/HoneyFarm.sol
+contract CheemscoinFarm is Ownable, ERC721 {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
   using EnumerableSet for EnumerableSet.AddressSet;
@@ -29,8 +31,7 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
   // Info of each pool.
   struct PoolInfo {
     uint256 allocation; // How many allocation points assigned to this pool.
-    /* Last block timestamp that HSFs distribution occured, initially set
-           to the startTime. */
+    // Last block timestamp that HSFs distribution occured, initially set to the startTime.
     uint256 lastRewardTimestamp;
     uint256 accHsfPerShare; // Accumulated HSFs per share, times SCALE.
     uint256 totalShares; // total shares stored in pool
@@ -99,7 +100,7 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
     // uint256 _timeLockConstant,
     // uint256 _downgradeFee
     uint256[9] memory _parameters
-  ) ERC721("HoneyFarm Deposits v1", "HFD") {
+  ) ERC721("CheemscoinFarm Deposits v1", "CFD") {
     uint256 _startTime = _parameters[0];
     uint256 _endTime = _parameters[1];
     require(_endTime > _startTime, "HF: endTime before startTime");
@@ -110,7 +111,7 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
     endTime = _endTime;
     _hsf.safeTransferFrom(msg.sender, address(this), _totalHsfToDistribute);
 
-    /* check readme at github.com/1Hive/honeyswap-farm for a breakdown of the maths */
+    // check https://hackmd.io/BFrhyOTUQ3O9REs5PuZahQ for a breakdown of the maths
     // ds = (2 * s) / (te * (r + 1))
     uint256 startDistribution_ = _totalHsfToDistribute.mul(2).mul(SCALE).mul(SCALE).div(
       (_endTime - _startTime).mul(_endDistributionFraction.add(SCALE))
@@ -160,11 +161,11 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
   }
 
   // underscore placed after to avoid collide with the ERC721._baseURI property
-  function setBaseURI(string memory baseURI_) external override onlyOwner {
+  function setBaseURI(string memory baseURI_) external onlyOwner {
     _setBaseURI(baseURI_);
   }
 
-  function disableContract(address _tokenRecipient) external override onlyOwner notDisabled {
+  function disableContract(address _tokenRecipient) external onlyOwner notDisabled {
     massUpdatePools();
     uint256 remainingTokens = getDistribution(block.timestamp, endTime);
     _safeHsfTransfer(_tokenRecipient, remainingTokens.div(SCALE));
@@ -172,7 +173,7 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
     emit Disabled();
   }
 
-  function depositAdditionalRewards(uint256 _depositAmount) external override {
+  function depositAdditionalRewards(uint256 _depositAmount) external {
     // TODO: Figure out if only only should be allowed to do this
     // require(msg.sender == address(rewardManager), "HF: Only RM may add rewards");
     uint256 totalAllocationPoints_ = totalAllocationPoints;
@@ -194,7 +195,7 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
   }
 
   // Add a new lp to the pool. Can only be called by the owner.
-  function add(IERC20 _lpToken, uint256 _allocation) public override onlyOwner notDisabled {
+  function add(IERC20 _lpToken, uint256 _allocation) public onlyOwner notDisabled {
     require(_allocation > 0, "HF: Too low allocation");
     massUpdatePools();
     require(pools.add(address(_lpToken)), "HF: LP pool already exists");
@@ -210,7 +211,7 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
   }
 
   // Update the given pool's allocation point. Can only be called by the owner.
-  function set(IERC20 _poolToken, uint256 _allocation) public override onlyOwner notDisabled {
+  function set(IERC20 _poolToken, uint256 _allocation) public onlyOwner notDisabled {
     require(pools.contains(address(_poolToken)), "HF: Non-existant pool");
     massUpdatePools();
     totalAllocationPoints = totalAllocationPoints.sub(poolInfo[_poolToken].allocation).add(
@@ -234,7 +235,7 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
     from = from.sub(startTime);
     to = to.sub(startTime);
 
-    /* check readme at github.com/1Hive/honeyswap-farm for a breakdown of the maths */
+    // check https://hackmd.io/BFrhyOTUQ3O9REs5PuZahQ for a breakdown of the maths
     // d(t1, t2) = (t2 - t1) * (2 * ds - (-m) * (t2 + t1)) / 2
     return to.sub(from).mul(startDistribution.mul(2).sub(distributionSlope.mul(from.add(to)))) / 2;
   }
