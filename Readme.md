@@ -1,6 +1,7 @@
-# Honey farming contracts
+# Cheemscoin farming contracts
 
 View this hack md file for an in-depth documentation: https://hackmd.io/BFrhyOTUQ3O9REs5PuZahQ?view
+(Note: this is for the original 1Hive contracts)
 
 ## Deploy procedure
 
@@ -14,3 +15,9 @@ View this hack md file for an in-depth documentation: https://hackmd.io/BFrhyOTU
 5. Transfer necessary xComb tokens to the referral rewarder
 6. Transfer ownership of the referral rewarder to the farm contract
 7. Set the referral rewarder address on the farm contract
+
+## Pools at launch
+
+- Honeyswap Cheemscoin - xDai (80%)
+- Sushiswap Cheemscoin - xDai (10%)
+- Pancakeswap Cheemscoin - BNB (10%)

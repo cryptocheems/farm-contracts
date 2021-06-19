@@ -16,6 +16,7 @@
   "license": "GPL-3.0-only",
   "devDependencies": {
     "@openzeppelin/test-helpers": "github:MrClottom/openzeppelin-test-helpers",
+    "@truffle/hdwallet-provider": "^1.4.1",
     "chai": "^4.3.4",
     "dotenv": "^8.2.0",
     "mocha": "^8.3.2",

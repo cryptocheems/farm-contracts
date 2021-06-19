@@ -9,7 +9,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IHoneyFarm.sol";
-import "./IRewardManager.sol";
 
 // Forked from sushiswap's MasterChef contract
 contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
@@ -25,7 +24,6 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
     uint256 rewardShare;
     uint256 setRewards;
     IERC20 pool;
-    address referrer;
   }
 
   // Info of each pool.
@@ -42,8 +40,6 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
   uint256 public constant SCALE = 1e18;
   // The HoneySwap Farm token
   IERC20 public immutable hsf;
-  // Manages referrals and additional rewards
-  IRewardManager public rewardManager;
   // Info of each pool.
   mapping(IERC20 => PoolInfo) public poolInfo;
   // set of running pools
@@ -54,8 +50,8 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
   uint256 public totalDeposits;
   // data about infdividual deposits
   mapping(uint256 => DepositInfo) public depositInfo;
-  // the negative slope of the distribution line scaled by SCALE, how much
-  // less is being distributed per unit of time.
+  /* the negative slope of the distribution line scaled by SCALE, how much
+  less is being distributed per unit of time. */
   uint256 public immutable distributionSlope;
   // starting distribution rate / unit time scaled by SCALE
   uint256 public immutable startDistribution;
@@ -72,14 +68,13 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
   // constant added to the timeLockMultiplier scaled by SCALE
   uint256 public immutable timeLockConstant;
   /* One time fee that is deducted from time-locked deposits given to whoever
-       downgrades it, scaled by SCALE */
+  downgrades it, scaled by SCALE */
   uint256 public immutable downgradeFee;
   // whether this contract has been disabled
   uint256 public contractDisabledAt;
 
   event PoolAdded(IERC20 indexed poolToken, uint256 allocation);
-  /* fired when pool parameters are updated not when the updatePool() method
-       is called */
+  // fired when pool parameters are updated not when the updatePool() method is called
   event PoolUpdated(IERC20 indexed poolToken, uint256 allocation);
   event PoolRemoved(IERC20 indexed poolToken);
   event Disabled();
@@ -88,10 +83,8 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
     uint256 indexed depositId,
     uint256 downgradeReward
   );
-  event Referred(address indexed referrer, uint256 depositId);
   event RewardsWithdraw(uint256 indexed depositId, uint256 rewardAmount);
   event RewardsAdded(uint256 additionalRewardAmount);
-  event RewardManagerSet(address indexed rewardManager);
 
   // parameters passed as byte strings to mitigate stack too deep error
   constructor(
@@ -117,8 +110,7 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
     endTime = _endTime;
     _hsf.safeTransferFrom(msg.sender, address(this), _totalHsfToDistribute);
 
-    /* check readme at github.com/1Hive/honeyswap-farm for a breakdown of
-           the maths */
+    /* check readme at github.com/1Hive/honeyswap-farm for a breakdown of the maths */
     // ds = (2 * s) / (te * (r + 1))
     uint256 startDistribution_ = _totalHsfToDistribute.mul(2).mul(SCALE).mul(SCALE).div(
       (_endTime - _startTime).mul(_endDistributionFraction.add(SCALE))
@@ -181,7 +173,8 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
   }
 
   function depositAdditionalRewards(uint256 _depositAmount) external override {
-    require(msg.sender == address(rewardManager), "HF: Only RM may add rewards");
+    // TODO: Figure out if only only should be allowed to do this
+    // require(msg.sender == address(rewardManager), "HF: Only RM may add rewards");
     uint256 totalAllocationPoints_ = totalAllocationPoints;
     require(totalAllocationPoints_ > 0, "HF: no pools created");
     hsf.safeTransferFrom(msg.sender, address(this), _depositAmount);
@@ -202,7 +195,6 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
 
   // Add a new lp to the pool. Can only be called by the owner.
   function add(IERC20 _lpToken, uint256 _allocation) public override onlyOwner notDisabled {
-    require(address(rewardManager) != address(0), "HF: RewardManager not setup yet");
     require(_allocation > 0, "HF: Too low allocation");
     massUpdatePools();
     require(pools.add(address(_lpToken)), "HF: LP pool already exists");
@@ -242,8 +234,7 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
     from = from.sub(startTime);
     to = to.sub(startTime);
 
-    /* check readme at github.com/1Hive/honeyswap-farm for a breakdown of
-           the maths */
+    /* check readme at github.com/1Hive/honeyswap-farm for a breakdown of the maths */
     // d(t1, t2) = (t2 - t1) * (2 * ds - (-m) * (t2 + t1)) / 2
     return to.sub(from).mul(startDistribution.mul(2).sub(distributionSlope.mul(from.add(to)))) / 2;
   }
@@ -265,8 +256,7 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
   function createDeposit(
     IERC20 _poolToken,
     uint256 _amount,
-    uint256 _unlockTime,
-    address _referrer
+    uint256 _unlockTime
   ) external notDisabled {
     require(_amount > 0, "HF: Must deposit something");
     require(_unlockTime == 0 || _unlockTime > block.timestamp, "HF: Invalid unlock time");
@@ -283,11 +273,7 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
     DepositInfo storage newDeposit = depositInfo[newDepositId];
     newDeposit.amount = _amount;
     newDeposit.pool = _poolToken;
-    newDeposit.referrer = _referrer;
     _resetRewardAccs(newDeposit, pool, _amount, _unlockTime);
-    if (_referrer != address(0)) {
-      emit Referred(_referrer, newDepositId);
-    }
     _safeMint(msg.sender, newDepositId);
   }
 
@@ -306,18 +292,9 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
     uint256 pending = _getPendingHsf(deposit, pool);
     pool.totalShares = pool.totalShares.sub(deposit.rewardShare);
     _burn(_depositId);
-    _rewardReferrer(deposit.referrer, pending);
     _safeHsfTransfer(msg.sender, pending);
     poolToken.safeTransfer(msg.sender, deposit.amount);
     delete depositInfo[_depositId];
-  }
-
-  function setRewardManager(address _rewardManager) external override onlyOwner {
-    require(address(rewardManager) == address(0), "HF: R already set");
-    require(Ownable(_rewardManager).owner() == address(this), "HF: Not yet owner of HRP");
-    IRewardManager(_rewardManager).grantFundsAccess();
-    rewardManager = IRewardManager(_rewardManager);
-    emit RewardManagerSet(_rewardManager);
   }
 
   function withdrawRewards(uint256 _depositId) external {
@@ -333,7 +310,6 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
     uint256 pendingRewards = _getPendingHsf(deposit, pool);
     deposit.setRewards = uint256(0);
     deposit.rewardDebt = deposit.rewardShare.mul(pool.accHsfPerShare).div(SCALE);
-    _rewardReferrer(deposit.referrer, pendingRewards);
     _safeHsfTransfer(msg.sender, pendingRewards);
     emit RewardsWithdraw(_depositId, pendingRewards);
   }
@@ -369,12 +345,6 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
     uint256 poolScaledRewards = hsfReward.div(totalShares);
     pool.accHsfPerShare = pool.accHsfPerShare.add(poolScaledRewards);
     pool.lastRewardTimestamp = block.timestamp;
-  }
-
-  function _rewardReferrer(address _referrer, uint256 _reward) internal {
-    if (_referrer != address(0)) {
-      rewardManager.distributeReward(_referrer, _reward);
-    }
   }
 
   function _downgradeExpired(uint256 _depositId) internal {
@@ -423,7 +393,7 @@ contract HoneyFarm is IHoneyFarm, Ownable, ERC721 {
   }
 
   /* Safe hsf transfer function, just in case if rounding error causes pool
-       to not have enough HSFs. */
+  to not have enough HSFs. */
   function _safeHsfTransfer(address _to, uint256 _amount) internal {
     uint256 hsfBal = hsf.balanceOf(address(this));
     hsf.safeTransfer(_to, Math.min(_amount, hsfBal));

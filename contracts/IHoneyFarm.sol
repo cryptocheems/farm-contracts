@@ -13,6 +13,4 @@ interface IHoneyFarm {
   function add(IERC20 _lpToken, uint256 _allocation) external;
 
   function set(IERC20 _poolToken, uint256 _allocation) external;
-
-  function setRewardManager(address _rewardManager) external;
 }
