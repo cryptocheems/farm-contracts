@@ -1,8 +1,6 @@
 {
-  "name": "honeyswap-farm",
+  "name": "farm-contracts",
   "version": "1.0.0",
-  "description": "",
-  "main": "truffle-config.js",
   "directories": {
     "test": "test"
   },
@@ -13,23 +11,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/1Hive/honeyswap-farm.git"
+    "url": "git+https://github.com/cryptocheems/farm-contracts.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/1Hive/honeyswap-farm/issues"
-  },
-  "homepage": "https://github.com/1Hive/honeyswap-farm#readme",
+  "license": "GPL-3.0-only",
   "devDependencies": {
     "@openzeppelin/test-helpers": "github:MrClottom/openzeppelin-test-helpers",
     "chai": "^4.3.4",
     "dotenv": "^8.2.0",
-    "eslint": "^7.20.0",
-    "eslint-plugin-prettier": "^3.3.1",
     "mocha": "^8.3.2",
-    "mongoose": "^5.12.5"
+    "mongoose": "^5.12.5",
+    "prettier-plugin-solidity": "^1.0.0-beta.13"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^3.4.0-solc-0.7",

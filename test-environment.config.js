@@ -1,8 +1,8 @@
 module.exports = {
   contracts: {
-    defaultGas: 12.5e6
+    defaultGas: 12.5e6,
   },
   node: {
-    gasLimit: 12.5e6
-  }
-}
+    gasLimit: 12.5e6,
+  },
+};
