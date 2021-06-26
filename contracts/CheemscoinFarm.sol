@@ -39,7 +39,7 @@ contract CheemscoinFarm is Ownable, ERC721 {
 
   // What fractional numbers are scaled by
   uint256 public constant SCALE = 1e18;
-  // The HoneySwap Farm token
+  // The Farm token
   IERC20 public immutable hsf;
   // Info of each pool.
   mapping(IERC20 => PoolInfo) public poolInfo;
@@ -125,6 +125,7 @@ contract CheemscoinFarm is Ownable, ERC721 {
     uint256 _minTimeLock = _parameters[4];
     uint256 _maxTimeLock = _parameters[5];
     require(_minTimeLock < _maxTimeLock, "HF: invalid lock limits");
+    // TODO: Change these. Also hardcode many of these values
     minTimeLock = _minTimeLock;
     maxTimeLock = _maxTimeLock;
     timeLockMultiplier = _parameters[6];
@@ -174,8 +175,6 @@ contract CheemscoinFarm is Ownable, ERC721 {
   }
 
   function depositAdditionalRewards(uint256 _depositAmount) external {
-    // TODO: Figure out if only only should be allowed to do this
-    // require(msg.sender == address(rewardManager), "HF: Only RM may add rewards");
     uint256 totalAllocationPoints_ = totalAllocationPoints;
     require(totalAllocationPoints_ > 0, "HF: no pools created");
     hsf.safeTransferFrom(msg.sender, address(this), _depositAmount);
@@ -260,13 +259,15 @@ contract CheemscoinFarm is Ownable, ERC721 {
     uint256 _unlockTime
   ) external notDisabled {
     require(_amount > 0, "HF: Must deposit something");
-    require(_unlockTime == 0 || _unlockTime > block.timestamp, "HF: Invalid unlock time");
+    // TODO: Confirm whether to do this
+    require(_unlockTime > block.timestamp, "HF: Invalid unlock time");
+    // require(_unlockTime == 0 || _unlockTime > block.timestamp, "HF: Invalid unlock time");
     require(pools.contains(address(_poolToken)), "HF: Non-existant pool");
-    if (_unlockTime != 0) {
-      uint256 lockDuration = _unlockTime.sub(block.timestamp);
-      require(minTimeLock <= lockDuration, "HF: Lock time too short");
-      require(lockDuration <= maxTimeLock, "HF: Lock time exceeds maximum");
-    }
+    // if (_unlockTime != 0) {
+    uint256 lockDuration = _unlockTime.sub(block.timestamp);
+    require(minTimeLock <= lockDuration, "HF: Lock time too short");
+    require(lockDuration <= maxTimeLock, "HF: Lock time exceeds maximum");
+    // }
     PoolInfo storage pool = poolInfo[_poolToken];
     updatePool(_poolToken);
     _poolToken.safeTransferFrom(address(msg.sender), address(this), _amount);
@@ -278,14 +279,18 @@ contract CheemscoinFarm is Ownable, ERC721 {
     _safeMint(msg.sender, newDepositId);
   }
 
-  // Withdraw LP tokens from HoneyFarm along with reward
+  // Withdraw LP tokens along with reward
   function closeDeposit(uint256 _depositId) external {
     require(ownerOf(_depositId) == msg.sender, "HF: Must be owner to withdraw");
     DepositInfo storage deposit = depositInfo[_depositId];
     require(
-      deposit.unlockTime == 0 || deposit.unlockTime <= block.timestamp || contractDisabledAt > 0,
+      deposit.unlockTime <= block.timestamp || contractDisabledAt > 0,
       "HF: Deposit still locked"
     );
+    // require(
+    //   deposit.unlockTime == 0 || deposit.unlockTime <= block.timestamp || contractDisabledAt > 0,
+    //   "HF: Deposit still locked"
+    // );
     IERC20 poolToken = deposit.pool;
     PoolInfo storage pool = poolInfo[poolToken];
     updatePool(poolToken);
@@ -313,6 +318,13 @@ contract CheemscoinFarm is Ownable, ERC721 {
     deposit.rewardDebt = deposit.rewardShare.mul(pool.accHsfPerShare).div(SCALE);
     _safeHsfTransfer(msg.sender, pendingRewards);
     emit RewardsWithdraw(_depositId, pendingRewards);
+  }
+
+  // This exists so if an ERC20 is accidentally sent to this contract, the funds can be recovered
+  function recoverToken(IERC20 _token) external onlyOwner {
+    // So owner cannot steal desposited funds
+    require(!pools.contains(address(_token)));
+    _token.safeTransfer(msg.sender, _token.balanceOf(address(this)));
   }
 
   function downgradeExpired(uint256 _depositId) public {
@@ -356,6 +368,7 @@ contract CheemscoinFarm is Ownable, ERC721 {
     deposit.setRewards = _getPendingHsf(deposit, pool);
     uint256 amount = deposit.amount;
     _resetRewardAccs(deposit, pool, amount, 0);
+    // TODO: look into this (refer to audit)
     uint256 downgradeReward = amount.mul(downgradeFee).div(SCALE);
     poolToken.safeTransfer(msg.sender, downgradeReward);
     deposit.amount = amount.sub(downgradeReward);
