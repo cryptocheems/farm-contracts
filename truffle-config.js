@@ -15,9 +15,10 @@ module.exports = {
       gasPrice: 1000000000,
     },
     rinkeby: {
+      networkCheckTimeout: 10000,
       provider: () => new HDWalletProvider(process.env.MNEMONIC, process.env.ALCHEMY),
       network_id: 4,
-      gasPrice: 10e9,
+      gasPrice: 1e9,
       skipDryRun: true,
     },
   },

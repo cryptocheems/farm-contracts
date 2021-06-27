@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // TODO: update link to farm
-// https://cheemsco.in/
+// https://cheemsco.in/farm
+// https://github.com/cryptocheems/farm-contracts
 pragma solidity 0.7.6;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -323,7 +324,7 @@ contract CheemscoinFarm is Ownable, ERC721 {
   // This exists so if an ERC20 is accidentally sent to this contract, the funds can be recovered
   function recoverToken(IERC20 _token) external onlyOwner {
     // So owner cannot steal desposited funds
-    require(!pools.contains(address(_token)));
+    require(!pools.contains(address(_token)) && _token != hsf);
     _token.safeTransfer(msg.sender, _token.balanceOf(address(this)));
   }
 

@@ -1,3 +1,5 @@
+// ! Note: This test was not used for the CheemscoinFarm contract
+
 const { contract, accounts, web3 } = require("@openzeppelin/test-environment");
 const { time, constants, expectEvent, expectRevert } = require("@openzeppelin/test-helpers");
 const { MAX_UINT256, ZERO_ADDRESS } = constants;
