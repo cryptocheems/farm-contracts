@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// TODO: update link to farm
 // https://cheemsco.in/farm
 // https://github.com/cryptocheems/farm-contracts
 pragma solidity 0.7.6;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -36,6 +36,23 @@ contract CheemscoinFarm is Ownable, ERC721 {
     uint256 lastRewardTimestamp;
     uint256 accHsfPerShare; // Accumulated HSFs per share, times SCALE.
     uint256 totalShares; // total shares stored in pool
+  }
+
+  // Frontend view of pools
+  struct PoolDetails {
+    IERC20 poolToken;
+    uint256 allocation;
+    uint256 lastRewardTimestamp;
+    uint256 accHsfPerShare;
+    uint256 totalShares;
+  }
+
+  // Frontend view of deposit
+  struct DepositDetails {
+    IERC20 poolToken;
+    uint256 balance; // Amount of LP tokens  deposited
+    uint256 unlockTime;
+    uint256 pendingReward; // Cheems not paid yet
   }
 
   // What fractional numbers are scaled by
@@ -101,7 +118,7 @@ contract CheemscoinFarm is Ownable, ERC721 {
     // uint256 _timeLockConstant,
     // uint256 _downgradeFee
     uint256[9] memory _parameters
-  ) ERC721("CheemscoinFarm Deposits v1", "CFD") {
+  ) ERC721("CheemsFarm Deposit v1", "CFD") {
     uint256 _startTime = _parameters[0];
     uint256 _endTime = _parameters[1];
     require(_endTime > _startTime, "HF: endTime before startTime");
@@ -126,7 +143,6 @@ contract CheemscoinFarm is Ownable, ERC721 {
     uint256 _minTimeLock = _parameters[4];
     uint256 _maxTimeLock = _parameters[5];
     require(_minTimeLock < _maxTimeLock, "HF: invalid lock limits");
-    // TODO: Change these. Also hardcode many of these values
     minTimeLock = _minTimeLock;
     maxTimeLock = _maxTimeLock;
     timeLockMultiplier = _parameters[6];
@@ -143,23 +159,35 @@ contract CheemscoinFarm is Ownable, ERC721 {
     return pools.length();
   }
 
-  function getPoolByIndex(uint256 _index)
-    external
-    view
-    returns (
-      IERC20 poolToken,
-      uint256 allocation,
-      uint256 lastRewardTimestamp,
-      uint256 accHsfPerShare,
-      uint256 totalShares
-    )
-  {
-    poolToken = IERC20(pools.at(_index));
-    PoolInfo storage pool = poolInfo[poolToken];
-    allocation = pool.allocation;
-    lastRewardTimestamp = pool.lastRewardTimestamp;
-    accHsfPerShare = pool.accHsfPerShare;
-    totalShares = pool.totalShares;
+  function getPoolByIndex(uint256 _index) public view returns (PoolDetails memory) {
+    IERC20 poolToken = IERC20(pools.at(_index));
+    PoolInfo memory pool = poolInfo[poolToken];
+    return
+      PoolDetails(
+        poolToken,
+        pool.allocation,
+        pool.lastRewardTimestamp,
+        pool.accHsfPerShare,
+        pool.totalShares
+      );
+  }
+
+  function getAllPools() external view returns (PoolDetails[] memory) {
+    PoolDetails[] memory allPools = new PoolDetails[](pools.length());
+    for (uint256 i = 0; i < pools.length(); i++) {
+      allPools[i] = getPoolByIndex(i);
+    }
+    return allPools;
+  }
+
+  function getAccountDeposits(address _account) external view returns (DepositDetails[] memory) {
+    DepositDetails[] memory allDeposits = new DepositDetails[](balanceOf(_account));
+    for (uint256 i = 0; i < balanceOf(_account); i++) {
+      uint256 depositIndex = tokenOfOwnerByIndex(_account, i);
+      DepositInfo memory d = depositInfo[depositIndex];
+      allDeposits[i] = DepositDetails(d.pool, d.amount, d.unlockTime, pendingHsf(depositIndex));
+    }
+    return allDeposits;
   }
 
   // underscore placed after to avoid collide with the ERC721._baseURI property
@@ -247,7 +275,7 @@ contract CheemscoinFarm is Ownable, ERC721 {
   }
 
   // View function to see pending HSFs on frontend.
-  function pendingHsf(uint256 _depositId) external view returns (uint256) {
+  function pendingHsf(uint256 _depositId) public view returns (uint256) {
     DepositInfo storage deposit = depositInfo[_depositId];
     PoolInfo storage pool = poolInfo[deposit.pool];
     return _getPendingHsf(deposit, pool);
@@ -260,15 +288,12 @@ contract CheemscoinFarm is Ownable, ERC721 {
     uint256 _unlockTime
   ) external notDisabled {
     require(_amount > 0, "HF: Must deposit something");
-    // TODO: Confirm whether to do this
     require(_unlockTime > block.timestamp, "HF: Invalid unlock time");
-    // require(_unlockTime == 0 || _unlockTime > block.timestamp, "HF: Invalid unlock time");
     require(pools.contains(address(_poolToken)), "HF: Non-existant pool");
-    // if (_unlockTime != 0) {
     uint256 lockDuration = _unlockTime.sub(block.timestamp);
     require(minTimeLock <= lockDuration, "HF: Lock time too short");
     require(lockDuration <= maxTimeLock, "HF: Lock time exceeds maximum");
-    // }
+
     PoolInfo storage pool = poolInfo[_poolToken];
     updatePool(_poolToken);
     _poolToken.safeTransferFrom(address(msg.sender), address(this), _amount);
