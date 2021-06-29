@@ -53,6 +53,7 @@ contract CheemscoinFarm is Ownable, ERC721 {
     uint256 balance; // Amount of LP tokens  deposited
     uint256 unlockTime;
     uint256 pendingReward; // Cheems not paid yet
+    uint256 id; // ERC721 id
   }
 
   // What fractional numbers are scaled by
@@ -183,9 +184,9 @@ contract CheemscoinFarm is Ownable, ERC721 {
   function getAccountDeposits(address _account) external view returns (DepositDetails[] memory) {
     DepositDetails[] memory allDeposits = new DepositDetails[](balanceOf(_account));
     for (uint256 i = 0; i < balanceOf(_account); i++) {
-      uint256 depositIndex = tokenOfOwnerByIndex(_account, i);
-      DepositInfo memory d = depositInfo[depositIndex];
-      allDeposits[i] = DepositDetails(d.pool, d.amount, d.unlockTime, pendingHsf(depositIndex));
+      uint256 dIndex = tokenOfOwnerByIndex(_account, i);
+      DepositInfo memory d = depositInfo[dIndex];
+      allDeposits[i] = DepositDetails(d.pool, d.amount, d.unlockTime, pendingHsf(dIndex), dIndex);
     }
     return allDeposits;
   }
