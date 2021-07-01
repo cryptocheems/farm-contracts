@@ -41,10 +41,8 @@ contract CheemscoinFarm is Ownable, ERC721 {
   // Frontend view of pools
   struct PoolDetails {
     IERC20 poolToken;
-    uint256 allocation;
-    uint256 lastRewardTimestamp;
-    uint256 accHsfPerShare;
-    uint256 totalShares;
+    uint256 hsfInDay;
+    uint256 poolTokenBalance;
   }
 
   // Frontend view of deposit
@@ -163,14 +161,10 @@ contract CheemscoinFarm is Ownable, ERC721 {
   function getPoolByIndex(uint256 _index) public view returns (PoolDetails memory) {
     IERC20 poolToken = IERC20(pools.at(_index));
     PoolInfo memory pool = poolInfo[poolToken];
-    return
-      PoolDetails(
-        poolToken,
-        pool.allocation,
-        pool.lastRewardTimestamp,
-        pool.accHsfPerShare,
-        pool.totalShares
-      );
+    uint256 hsfInDay = getDistribution(block.timestamp, block.timestamp.add(24 * 3600)).div(SCALE);
+    uint256 poolHsfInDay = hsfInDay.mul(pool.allocation).div(totalAllocationPoints);
+    uint256 poolTokenBalance = poolToken.balanceOf(address(this));
+    return PoolDetails(poolToken, poolHsfInDay, poolTokenBalance);
   }
 
   function getAllPools() external view returns (PoolDetails[] memory) {
@@ -204,6 +198,7 @@ contract CheemscoinFarm is Ownable, ERC721 {
     emit Disabled();
   }
 
+  // Retroactively reward stakers. Does not contribute to future rewards
   function depositAdditionalRewards(uint256 _depositAmount) external {
     uint256 totalAllocationPoints_ = totalAllocationPoints;
     require(totalAllocationPoints_ > 0, "HF: no pools created");
@@ -354,6 +349,8 @@ contract CheemscoinFarm is Ownable, ERC721 {
     _token.safeTransfer(msg.sender, _token.balanceOf(address(this)));
   }
 
+  /* If the lock has expired, when this is called, the deposit's multiplier is set to 1 and
+  the downgradeFee (probably 0.01%) is deducted from the deposit LP and sent to whoever calls this*/
   function downgradeExpired(uint256 _depositId) public {
     DepositInfo storage deposit = depositInfo[_depositId];
     require(deposit.unlockTime > 0, "HF: no lock to expire");
@@ -395,7 +392,6 @@ contract CheemscoinFarm is Ownable, ERC721 {
     deposit.setRewards = _getPendingHsf(deposit, pool);
     uint256 amount = deposit.amount;
     _resetRewardAccs(deposit, pool, amount, 0);
-    // TODO: look into this (refer to audit)
     uint256 downgradeReward = amount.mul(downgradeFee).div(SCALE);
     poolToken.safeTransfer(msg.sender, downgradeReward);
     deposit.amount = amount.sub(downgradeReward);
