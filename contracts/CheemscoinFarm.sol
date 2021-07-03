@@ -54,6 +54,12 @@ contract CheemscoinFarm is Ownable, ERC721 {
     uint256 id; // ERC721 id
   }
 
+  struct ExpiredDeposit {
+    uint256 id;
+    IERC20 poolToken;
+    uint256 reward;
+  }
+
   // What fractional numbers are scaled by
   uint256 public constant SCALE = 1e18;
   // The Farm token
@@ -66,7 +72,7 @@ contract CheemscoinFarm is Ownable, ERC721 {
   uint256 public totalAllocationPoints;
   // total deposits
   uint256 public totalDeposits;
-  // data about infdividual deposits
+  // data about individual deposits
   mapping(uint256 => DepositInfo) public depositInfo;
   /* the negative slope of the distribution line scaled by SCALE, how much
   less is being distributed per unit of time. */
@@ -183,6 +189,20 @@ contract CheemscoinFarm is Ownable, ERC721 {
       allDeposits[i] = DepositDetails(d.pool, d.amount, d.unlockTime, pendingHsf(dIndex), dIndex);
     }
     return allDeposits;
+  }
+
+  function getExpiredDepositIds() public view returns (ExpiredDeposit[] memory) {
+    ExpiredDeposit[] memory ids = new ExpiredDeposit[](totalDeposits);
+    uint256 j = 0;
+    for (uint256 i = 0; i < totalDeposits; i++) {
+      DepositInfo memory d = depositInfo[i];
+      if (d.unlockTime <= block.timestamp) {
+        uint256 reward = d.amount.mul(downgradeFee).div(SCALE);
+        ids[j] = ExpiredDeposit(i, d.pool, reward);
+        j++;
+      }
+    }
+    return ids;
   }
 
   // underscore placed after to avoid collide with the ERC721._baseURI property
@@ -309,10 +329,6 @@ contract CheemscoinFarm is Ownable, ERC721 {
       deposit.unlockTime <= block.timestamp || contractDisabledAt > 0,
       "HF: Deposit still locked"
     );
-    // require(
-    //   deposit.unlockTime == 0 || deposit.unlockTime <= block.timestamp || contractDisabledAt > 0,
-    //   "HF: Deposit still locked"
-    // );
     IERC20 poolToken = deposit.pool;
     PoolInfo storage pool = poolInfo[poolToken];
     updatePool(poolToken);
