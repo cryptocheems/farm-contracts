@@ -11,8 +11,8 @@ module.exports = {
     xdai: {
       provider: () => new HDWalletProvider(process.env.MNEMONIC, "https://xdai.1hive.org/"),
       network_id: 100,
-      gas: 5000000,
-      gasPrice: 1e9,
+      gas: 4_500_000,
+      gasPrice: 2.5e9,
     },
     rinkeby: {
       networkCheckTimeout: 90000,

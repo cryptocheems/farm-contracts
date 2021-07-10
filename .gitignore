@@ -4,3 +4,4 @@ node_modules
 *.flat.sol
 .env
 build
+.DS_Store

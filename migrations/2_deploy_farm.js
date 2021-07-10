@@ -14,18 +14,18 @@ module.exports = async (deployer, _, [owner]) => {
   const SCALE = ether("1");
   const tomorrow = Math.floor(new Date() / 1000) + 24 * 60 * 60; // time 1 day later
   // TODO: Change this too
-  // const duration = 180 * 24 * 60 * 60; // 180 days
+  // const duration = 90 * 24 * 60 * 60; // 90 days
   const duration = 7 * 24 * 60 * 60; // 7 days
   const startTime = safeBN(tomorrow);
   const endTime = safeBN(tomorrow + duration);
   const endDistFrac = ether("0.25"); // :|
   const minTimelock = safeBN(48 * 60 * 60); // 2 days
   const maxTimelock = safeBN(duration);
-  // 180 days is a 6x
+  // 90 days is a 6x
   const timeLockMultiplier = safeBN(10)
     .pow(safeBN("18"))
     .mul(safeBN("5"))
-    .div(safeBN(180 * 24 * 3600)); // 180 days
+    .div(safeBN(90 * 24 * 3600)); // 90 days
   const downgradeFee = ether("0.0001");
 
   const cheems = await Cheemscoin.deployed();

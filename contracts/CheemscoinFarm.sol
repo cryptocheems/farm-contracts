@@ -191,12 +191,14 @@ contract CheemscoinFarm is Ownable, ERC721 {
     return allDeposits;
   }
 
+  /* The function name is misleading. It gets all of the ExpiredDeposits, which 
+  have an id, poolToken and reward */
   function getExpiredDepositIds() public view returns (ExpiredDeposit[] memory) {
     ExpiredDeposit[] memory ids = new ExpiredDeposit[](totalDeposits);
     uint256 j = 0;
     for (uint256 i = 0; i < totalDeposits; i++) {
       DepositInfo memory d = depositInfo[i];
-      if (d.unlockTime <= block.timestamp) {
+      if (d.unlockTime <= block.timestamp && d.unlockTime != 0) {
         uint256 reward = d.amount.mul(downgradeFee).div(SCALE);
         ids[j] = ExpiredDeposit(i, d.pool, reward);
         j++;
@@ -341,7 +343,7 @@ contract CheemscoinFarm is Ownable, ERC721 {
     delete depositInfo[_depositId];
   }
 
-  function withdrawRewards(uint256 _depositId) external {
+  function withdrawRewards(uint256 _depositId) public {
     require(ownerOf(_depositId) == msg.sender, "HF: Must be owner of deposit");
     DepositInfo storage deposit = depositInfo[_depositId];
     PoolInfo storage pool = poolInfo[deposit.pool];
@@ -356,6 +358,13 @@ contract CheemscoinFarm is Ownable, ERC721 {
     deposit.rewardDebt = deposit.rewardShare.mul(pool.accHsfPerShare).div(SCALE);
     _safeHsfTransfer(msg.sender, pendingRewards);
     emit RewardsWithdraw(_depositId, pendingRewards);
+  }
+
+  function multiWithdraw(uint256[] calldata _depositIds) external {
+    uint256 depositIdCount = _depositIds.length;
+    for (uint256 i = 0; i < depositIdCount; i++) {
+      withdrawRewards(_depositIds[i]);
+    }
   }
 
   // This exists so if an ERC20 is accidentally sent to this contract, the funds can be recovered
