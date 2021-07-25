@@ -18,7 +18,7 @@ module.exports = {
       networkCheckTimeout: 90000,
       provider: () => new HDWalletProvider(process.env.MNEMONIC, process.env.ALCHEMY),
       network_id: 4,
-      gasPrice: 1e9,
+      gasPrice: 2e9,
       skipDryRun: true,
       websocket: true,
     },

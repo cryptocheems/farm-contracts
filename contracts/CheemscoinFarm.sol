@@ -193,7 +193,7 @@ contract CheemscoinFarm is Ownable, ERC721 {
 
   /* The function name is misleading. It gets all of the ExpiredDeposits, which 
   have an id, poolToken and reward */
-  function getExpiredDepositIds() public view returns (ExpiredDeposit[] memory) {
+  function getExpiredDepositIds() external view returns (ExpiredDeposit[] memory) {
     ExpiredDeposit[] memory ids = new ExpiredDeposit[](totalDeposits);
     uint256 j = 0;
     for (uint256 i = 0; i < totalDeposits; i++) {
