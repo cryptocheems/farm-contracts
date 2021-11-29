@@ -9,10 +9,9 @@ module.exports = async (_, network) => {
           { address: "0x22cF19aFDAf9DF62cDE6367012a31E3Ad6e4E485", weighting: 10 },
         ]
       : [
-          { address: "0xce5382ff31b7a6f24797a46c307351fde135c0fd", weighting: 50 }, // xDAI
-          { address: "0xca9d54300bbc19878d8c9601bba1821d44df26e9", weighting: 15 }, // HNY
-          { address: "0xe60976a1456d589507cfc11a86f6b8be15fc799c", weighting: 15 }, // wBTC
-          { address: "0x972dec20648f57a350d8fe09acd22805fe246c84", weighting: 20 }, // wETH
+          { address: "0xce5382ff31b7a6f24797a46c307351fde135c0fd", weighting: 80 }, // xDAI
+          { address: "0xca9d54300bbc19878d8c9601bba1821d44df26e9", weighting: 10 }, // HNY
+          { address: "0xe60976a1456d589507cfc11a86f6b8be15fc799c", weighting: 10 }, // wBTC
         ];
   const farm = await Farm.deployed();
   allocations.forEach(async ({ address, weighting }) => {
