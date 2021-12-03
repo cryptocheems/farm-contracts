@@ -8,12 +8,10 @@ module.exports = async (deployer, _, [owner]) => {
 
   const nonce = (await web3.eth.getTransactionCount(owner)) - 1;
   const cheemsAmount = ether("345210");
-  // const cheemsAmount = ether("140");
 
   const SCALE = ether("1");
   const tomorrow = Math.floor(new Date() / 1000) + 24 * 60 * 60; // time 1 day later
   const duration = 30 * 24 * 60 * 60; // 30 days
-  // const duration = 7 * 24 * 60 * 60; // 7 days
   const startTime = safeBN(tomorrow);
   const endTime = safeBN(tomorrow + duration);
   const endDistFrac = ether("0.25"); // :|

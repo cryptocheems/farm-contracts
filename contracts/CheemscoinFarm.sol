@@ -123,7 +123,7 @@ contract CheemscoinFarm is Ownable, ERC721 {
     // uint256 _timeLockConstant,
     // uint256 _downgradeFee
     uint256[9] memory _parameters
-  ) ERC721("CheemsFarm Deposit v1", "CFD") {
+  ) ERC721("CheemsFarm Deposit v2", "CFD") {
     uint256 _startTime = _parameters[0];
     uint256 _endTime = _parameters[1];
     require(_endTime > _startTime, "HF: endTime before startTime");
